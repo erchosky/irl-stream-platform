@@ -1,11 +1,12 @@
 # IRL Stream Platform
 
-Plataforma propia para recibir una GoPro HERO10 Black mediante GoPro Quik,
-transportar la señal por RTMP/RTMPS a un VPS y entregarla a OBS Studio por SRT.
+Infraestructura para recibir una señal de GoPro HERO10 Black mediante GoPro Quik, transportarla por RTMP/RTMPS a un VPS y entregarla a OBS por SRT.
 
-Estado actual: **Fase 1 implementada; validación física con GoPro y VPS
-pendiente**. No hay panel web, continuidad de salida ni fallback todavía.
-Consulta [STATUS.md](STATUS.md) antes de usarla en un directo.
+La fase 1 está implementada. La validación física con GoPro y VPS sigue pendiente; todavía no incluye panel web, continuidad de salida ni señal alternativa. Consulta [STATUS.md](STATUS.md) antes de usarla en un directo.
+
+[Arquitectura actual](#arquitectura-actual) · [Arranque](#arranque) · [URLs](#urls) · [Pruebas](#pruebas) · [Documentación](#documentación)
+
+---
 
 ## Arquitectura actual
 
