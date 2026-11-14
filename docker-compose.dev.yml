@@ -1,0 +1,13 @@
+services:
+  mediamtx:
+    ports:
+      - "127.0.0.1:8888:8888/tcp"
+      - "127.0.0.1:9997:9997/tcp"
+      - "127.0.0.1:9998:9998/tcp"
+    environment:
+      MTX_LOGLEVEL: debug
+
+  control-api:
+    environment:
+      LOG_LEVEL: debug
+

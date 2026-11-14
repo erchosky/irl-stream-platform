@@ -1,0 +1,12 @@
+# Review before applying. Replace 22 with the actual SSH port.
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow 443/udp
+ufw allow 1936/tcp
+ufw allow 8890/udp
+# Laboratory only:
+# ufw allow 1935/tcp
+

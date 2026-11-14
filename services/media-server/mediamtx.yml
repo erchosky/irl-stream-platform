@@ -1,0 +1,59 @@
+logLevel: info
+logDestinations: [stdout]
+logStructured: true
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 512
+udpMaxPayloadSize: 1316
+
+authMethod: http
+authHTTPAddress: http://control-api:8080/v1/media/auth
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+api: true
+apiAddress: :9997
+apiAllowOrigins: []
+
+metrics: true
+metricsAddress: :9998
+metricsAllowOrigins: []
+
+pprof: false
+playback: false
+
+rtsp: false
+
+rtmp: true
+rtmpEncryption: "no"
+rtmpAddress: :1935
+rtmpsAddress: :1936
+rtmpServerKey: /tls/tls.key
+rtmpServerCert: /tls/tls.crt
+
+hls: true
+hlsAddress: :8888
+hlsEncryption: false
+hlsAllowOrigins: []
+hlsAlwaysRemux: false
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+
+webrtc: false
+srt: true
+srtAddress: :8890
+moq: false
+
+pathDefaults:
+  source: publisher
+  maxReaders: 8
+  overridePublisher: false
+  record: false
+
+paths:
+  # Authentication limits access to the single MEDIA_PATH configured in the
+  # control API. A catch-all is required because MediaMTX path map keys cannot
+  # be interpolated from environment variables.
+  all_others: {}

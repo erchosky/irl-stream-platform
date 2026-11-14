@@ -1,0 +1,31 @@
+.env
+.env.*
+!.env.example
+
+# Secrets and certificates
+data/*
+!data/.gitkeep
+!data/tls/
+data/tls/*
+!data/tls/.gitkeep
+*.key
+*.pem
+*.p12
+
+# Runtime data
+backups/*
+!backups/.gitkeep
+recordings/*
+!recordings/.gitkeep
+logs/
+diagnostics/
+
+# Builds and editors
+bin/
+dist/
+coverage/
+.DS_Store
+.idea/
+.vscode/
+*.tmp
+

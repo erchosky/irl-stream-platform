@@ -1,0 +1,37 @@
+{
+	admin 127.0.0.1:2019
+	http_port 8080
+	https_port 8443
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+{$PUBLIC_HOST:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	@control path /healthz /readyz /version
+	handle @control {
+		reverse_proxy control-api:8080
+	}
+
+	@hls path /{$MEDIA_PATH:irl}/*
+	handle @hls {
+		reverse_proxy mediamtx:8888
+	}
+
+	respond 404
+
+	log {
+		output stdout
+		format json
+	}
+}

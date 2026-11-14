@@ -1,0 +1,185 @@
+name: irl-stream-platform
+
+services:
+  control-api:
+    build:
+      context: ./apps/api
+      args:
+        APP_VERSION: "0.1.1"
+    environment:
+      LISTEN_ADDR: :8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MEDIA_API_URL: http://mediamtx:9997
+      MEDIA_PATH: ${MEDIA_PATH:-irl}
+      PUBLISH_TOKEN: ${PUBLISH_TOKEN:?PUBLISH_TOKEN is required}
+      READ_TOKEN: ${READ_TOKEN:?READ_TOKEN is required}
+    ports:
+      - "127.0.0.1:${CONTROL_API_PORT:-8080}:8080"
+    networks:
+      - internal
+      - gateway
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    init: true
+    mem_limit: 64m
+    cpus: 0.25
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-5}
+
+  mediamtx:
+    build:
+      context: ./services/media-server
+      args:
+        MEDIAMTX_VERSION: ${MEDIA_MTX_VERSION:-1.19.3}
+    environment:
+      MTX_LOGLEVEL: ${LOG_LEVEL:-info}
+      MTX_RTMPENCRYPTION: ${RTMP_ENCRYPTION:-no}
+      MTX_HLSSEGMENTCOUNT: ${HLS_SEGMENT_COUNT:-7}
+      MTX_METRICS: ${METRICS_ENABLED:-true}
+      MTX_PATHDEFAULTS_MAXREADERS: ${MEDIA_MAX_READERS:-8}
+      MTX_PATHDEFAULTS_SRTREADPASSPHRASE: ${SRT_READ_PASSPHRASE:?SRT_READ_PASSPHRASE is required}
+    depends_on:
+      control-api:
+        condition: service_healthy
+    ports:
+      - "${RTMP_PORT:-1935}:1935/tcp"
+      - "${RTMPS_PORT:-1936}:1936/tcp"
+      - "${SRT_PORT:-8890}:8890/udp"
+    volumes:
+      - ./data/tls:/tls:ro
+    networks:
+      - internal
+      - gateway
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    init: true
+    mem_limit: 512m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9997/v3/info"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  gateway-permissions:
+    image: alpine:3.23.5
+    command: ["chown", "-R", "10003:10003", "/data", "/config"]
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    network_mode: none
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+    restart: "no"
+    mem_limit: 32m
+    cpus: 0.1
+    logging: *default-logging
+
+  gateway:
+    build:
+      context: ./infrastructure/caddy
+    environment:
+      MEDIA_PATH: ${MEDIA_PATH:-irl}
+      PUBLIC_HOST: ${PUBLIC_HOST:?PUBLIC_HOST is required}
+    depends_on:
+      gateway-permissions:
+        condition: service_completed_successfully
+      control-api:
+        condition: service_healthy
+      mediamtx:
+        condition: service_healthy
+    ports:
+      - "80:8080/tcp"
+      - "443:8443/tcp"
+      - "443:8443/udp"
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+      - gateway
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  stream-tester:
+    profiles: ["test"]
+    build:
+      context: ./tests/stream-tester
+    environment:
+      MEDIA_PATH: ${MEDIA_PATH:-irl}
+      PUBLIC_HOST: ${PUBLIC_HOST:?PUBLIC_HOST is required}
+      PUBLISH_TOKEN: ${PUBLISH_TOKEN:?PUBLISH_TOKEN is required}
+      READ_TOKEN: ${READ_TOKEN:?READ_TOKEN is required}
+      SRT_READ_PASSPHRASE: ${SRT_READ_PASSPHRASE:?SRT_READ_PASSPHRASE is required}
+      SRT_LATENCY_US: ${SRT_LATENCY_US:-2000000}
+    depends_on:
+      mediamtx:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    networks:
+      - internal
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    cpus: 1.5
+    logging: *default-logging
+
+networks:
+  gateway:
+  internal:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
